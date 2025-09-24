@@ -1,0 +1,16 @@
+service: my-express-app
+provider:
+  name: aws
+  runtime: nodejs20.x # Or your preferred Node.js version
+  region: us-east-1 # Or your preferred region
+  # Use a specific stage like 'dev' or 'prod'
+  stage: dev
+
+functions:
+  expressApp:
+    handler: app.handler # The file and exported handler function from Step 1
+    events:
+      - http:
+          path: /{proxy+} # This catches all requests and paths
+          method: ANY
+          cors: true
