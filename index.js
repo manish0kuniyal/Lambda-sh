@@ -5,26 +5,28 @@ const serverless = require('serverless-http');
 const app = express();
 app.use(express.json());
 
-// strip stage prefix middleware (safe, handles when API Gateway includes the stage in the forwarded path)
-const STAGE = '/prod';
+// dynamic stage strip: use env STAGE if available, otherwise 'prod'
+const STAGE = process.env.STAGE || 'prod';
 app.use((req, res, next) => {
-  if (req.url.startsWith(STAGE)) {
-    req.url = req.url.replace(new RegExp('^' + STAGE), '') || '/';
+  // if url is like '/prod' or '/prod/hello', remove the leading '/prod'
+  if (req.url === `/${STAGE}`) {
+    req.url = '/';
+  } else if (req.url.startsWith(`/${STAGE}/`)) {
+    req.url = req.url.replace(new RegExp('^/' + STAGE), '') || '/';
   }
   next();
 });
 
-// Normal route
+// normal routes
 app.get('/hello', (req, res) => {
   res.json({ message: 'Hello from Express /hello' });
 });
 
-// Root route
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from Express / (root)' });
 });
 
-// Debug endpoint to inspect exactly what API Gateway forwarded
+// debug route
 app.get('/_debug', (req, res) => {
   res.json({
     path: req.path,
@@ -35,7 +37,7 @@ app.get('/_debug', (req, res) => {
   });
 });
 
-// Catch-all to show unmatched requests
+// catch-all
 app.use((req, res) => {
   res.status(404).json({
     message: 'Express 404',
@@ -45,7 +47,6 @@ app.use((req, res) => {
 
 module.exports.handler = serverless(app);
 
-// // optional local runner
 // if (require.main === module) {
 //   const port = process.env.PORT || 3000;
 //   app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
