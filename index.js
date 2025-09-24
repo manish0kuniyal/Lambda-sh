@@ -19,7 +19,7 @@ app.use((req, res, next) => {
 
 // normal routes
 app.get('/hello', (req, res) => {
-  res.json({ message: 'Hello from Express /hello' });
+  res.json({ message: 'Hello from Express 👍' });
 });
 
 app.get('/', (req, res) => {
