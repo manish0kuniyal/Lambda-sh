@@ -34,17 +34,74 @@ jobs:
 
       - name: Update Lambda function code
         env:
-          FUNCTION_NAME: express-api   # ⚡ replace with your Lambda’s function name
+          FUNCTION_NAME: express-api
         run: |
           aws lambda update-function-code \
             --function-name "$FUNCTION_NAME" \
             --zip-file fileb://function.zip \
             --publish
 
-      - name: Update Lambda environment variables
+# install jq so we can merge env vars
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      
+      # wait for Lambda to finish the code update (longer polling + checks)
+      - name: Wait for Lambda to become Active and Successful
         env:
-         FUNCTION_NAME: express-api   # same function name as above
+          FUNCTION_NAME: express-api
         run: |
+          max_attempts=20
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            cfg_json=$(aws lambda get-function-configuration --function-name "$FUNCTION_NAME" --output json)
+            state=$(echo "$cfg_json" | jq -r .State)
+            last_status=$(echo "$cfg_json" | jq -r .LastUpdateStatus)
+      
+            echo "Attempt $attempt: State=$state, LastUpdateStatus=$last_status"
+      
+            if [ "$state" = "Active" ] && [ "$last_status" = "Successful" ]; then
+              echo "Lambda is ready."
+              break
+            fi
+      
+            if [ "$last_status" = "Failed" ]; then
+              echo "Lambda update failed. Dumping configuration for debugging:"
+              echo "$cfg_json"
+              exit 1
+            fi
+      
+            # exponential backoff: 5,10,15,... seconds
+            sleep_seconds=$((attempt * 5))
+            echo "Sleeping $sleep_seconds seconds before retry..."
+            sleep $sleep_seconds
+      
+            attempt=$((attempt + 1))
+          done
+      
+          if [ $attempt -gt $max_attempts ]; then
+            echo "Timed out waiting for Lambda to become ready."
+            exit 1
+          fi
+      
+      # merge existing env vars with the MONGODB_URI secret so we don't clobber others
+      - name: Merge & update Lambda environment variables
+        env:
+          FUNCTION_NAME: express-api
+        run: |
+          # fetch current env (may be null)
+          cfg=$(aws lambda get-function-configuration --function-name "$FUNCTION_NAME" --output json)
+      
+          # extract current variables (or empty object)
+          current_vars=$(echo "$cfg" | jq -r '.Environment.Variables // {}')
+      
+          # build new vars object by merging existing with the new ones; GH secrets are expanded by Actions
+          new_vars=$(echo "$current_vars" | jq --arg mongo "${{ secrets.MONGODB_URI }}" --arg db "prod" '. + {MONGODB_URI: $mongo, MONGODB_DB: $db }')
+      
+          # update config using the merged variables (converted to KEY=VALUE,KEY2=VALUE2 form)
+          # convert JSON object to the AWS CLI inline format
+          kv_string=$(echo "$new_vars" | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|join(",")')
+      
           aws lambda update-function-configuration \
             --function-name "$FUNCTION_NAME" \
-            --environment "Variables={MONGODB_URI=${{ secrets.MONGODB_URI }},MONGODB_DB=prod}"
+            --environment "Variables={$kv_string}"
+      
