@@ -1,11 +1,11 @@
 // index.js
 const express = require('express');
 const serverless = require('serverless-http');
-
+const userRouter=require('./user')
 const app = express();
 app.use(express.json());
 
-// dynamic stage strip: use env STAGE if available, otherwise 'prod'
+
 const STAGE = process.env.STAGE || 'prod';
 app.use((req, res, next) => {
   // if url is like '/prod' or '/prod/hello', remove the leading '/prod'
@@ -16,10 +16,9 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-// normal routes
+app.use('/', userRouter);
 app.get('/hello', (req, res) => {
-  res.json({ message: 'Hello from Express 👍' });
+  res.json({ message: 'Hello from Express ⚡' });
 });
 
 app.get('/', (req, res) => {

@@ -40,3 +40,11 @@ jobs:
             --function-name "$FUNCTION_NAME" \
             --zip-file fileb://function.zip \
             --publish
+
+      - name: Update Lambda environment variables
+        env:
+         FUNCTION_NAME: express-api   # same function name as above
+        run: |
+          aws lambda update-function-configuration \
+            --function-name "$FUNCTION_NAME" \
+            --environment "Variables={MONGODB_URI=${{ secrets.MONGODB_URI }},MONGODB_DB=prod}"
