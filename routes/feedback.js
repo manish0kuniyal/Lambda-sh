@@ -1,7 +1,7 @@
 // routes/feedback.js
 import express from "express";
-import Feedback from "../models/Feedback.js";
-import Form from "../models/Form.js";
+import Feedback from "../models/feedback.js";
+import Form from "../models/form.js";
 import axios from "axios";
 
 const router = express.Router();

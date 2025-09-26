@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 
 let isConnected = false;
 
-export async function connectDB() {
+export default async function connectDB() {
   if (isConnected) {
     console.log("✅ MongoDB already connected");
     return;
   }
 
   try {
-    const db = await mongoose.connect(process.env.MONGO_URI, {
+    const db = await mongoose.connect(process.env.MONGODB_URI, {
       // useNewUrlParser: true,
       // useUnifiedTopology: true,
     });

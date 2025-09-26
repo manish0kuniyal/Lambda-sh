@@ -3,12 +3,14 @@
 // const serverless = require('serverless-http');
 import express from 'express'
 import serverless from 'serverless-http'
-import cors from 'cors'
+// import cors from 'cors'
 import authRouter from "./routes/auth.js"
 import feedbackRouter from "./routes/feedback.js";
-import formsRouter from "./routes/forms.js";
+import formsRouter from "./routes/form.js";
 import usersRouter from "./routes/user.js";
+import cookieParser from 'cookie-parser';
 
+import connectDB from "./utils/dbconnect.js"
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -17,6 +19,9 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+const port=3000
+
+await connectDB()
 
 const STAGE = process.env.STAGE || 'prod';
 app.use((req, res, next) => {
@@ -30,11 +35,11 @@ app.use((req, res, next) => {
 });
 
 app.get('/hello', (req, res) => {
-  res.json({ message: 'Hello from Express ⚡' });
+  res.json({ message: ' hello ⚡' });
 });
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello from Express 🔥 ' });
+  res.json({ message: '...Express live 🔥 ' });
 });
 
 
@@ -64,9 +69,6 @@ app.use((req, res) => {
   });
 });
 
-module.exports.handler = serverless(app);
+export const handler = serverless(app);
 
-// if (require.main === module) {
-//   const port = process.env.PORT || 3000;
-//   app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
-// }
+  app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
