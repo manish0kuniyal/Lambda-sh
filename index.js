@@ -1,9 +1,21 @@
 // index.js
-const express = require('express');
-const serverless = require('serverless-http');
-const userRouter=require('./user.js')
+// const express = require('express');
+// const serverless = require('serverless-http');
+import express from 'express'
+import serverless from 'serverless-http'
+import cors from 'cors'
+import authRouter from "./routes/auth.js"
+import feedbackRouter from "./routes/feedback.js";
+import formsRouter from "./routes/forms.js";
+import usersRouter from "./routes/user.js";
+
+
+import dotenv from "dotenv";
+dotenv.config();
 const app = express();
+
 app.use(express.json());
+app.use(cookieParser());
 
 
 const STAGE = process.env.STAGE || 'prod';
@@ -16,16 +28,24 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use('/', userRouter);
+
 app.get('/hello', (req, res) => {
   res.json({ message: 'Hello from Express ⚡' });
 });
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello from Express / (root)' });
+  res.json({ message: 'Hello from Express 🔥 ' });
 });
 
-// debug route
+
+
+app.use("/api/auth", authRouter);
+app.use("/api/feedback", feedbackRouter);
+app.use("/api/forms", formsRouter);
+app.use("/api/users", usersRouter);
+
+
+// test it without
 app.get('/_debug', (req, res) => {
   res.json({
     path: req.path,
