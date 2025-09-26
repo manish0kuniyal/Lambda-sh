@@ -1,7 +1,7 @@
 // index.js
 const express = require('express');
 const serverless = require('serverless-http');
-const userRouter=require('./user')
+const userRouter=require('./user.js')
 const app = express();
 app.use(express.json());
 
