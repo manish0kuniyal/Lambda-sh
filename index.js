@@ -3,7 +3,7 @@
 // const serverless = require('serverless-http');
 import express from 'express'
 import serverless from 'serverless-http'
-// import cors from 'cors'
+import cors from 'cors'
 import authRouter from "./routes/auth.js"
 import feedbackRouter from "./routes/feedback.js";
 import formsRouter from "./routes/form.js";
@@ -19,7 +19,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-const port=3000
+const port=5000
 
 await connectDB()
 
@@ -33,10 +33,16 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-app.get('/hello', (req, res) => {
-  res.json({ message: ' hello ⚡' });
-});
+
 
 app.get('/', (req, res) => {
   res.json({ message: '...Express live 🔥 ' });
@@ -71,4 +77,4 @@ app.use((req, res) => {
 
 export const handler = serverless(app);
 
-  app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
+  // app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
