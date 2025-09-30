@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 });
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: ["http://localhost:3000", "http://localhost:5173","https://main.d3jt2wtqx08knj.amplifyapp.com/"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
