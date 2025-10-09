@@ -37,7 +37,7 @@ app.use(
   cors({
     origin: ["http://localhost:3000", "http://localhost:5173","https://dev.feedbyx.com","https://main.d3jt2wtqx08knj.amplifyapp.com"],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET","HEAD","PUT","PATCH","POST","DELETE","OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -77,4 +77,4 @@ app.use((req, res) => {
 
 export const handler = serverless(app);
 
-  // app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
+  app.listen(port, () => console.log(`Local server on http://localhost:${port}`));

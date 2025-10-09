@@ -1,4 +1,4 @@
-// routes/feedback.js
+
 import express from "express";
 import Feedback from "../models/feedback.js";
 import Form from "../models/form.js";
@@ -6,9 +6,6 @@ import axios from "axios";
 
 const router = express.Router();
 
-/* =========================
-   IP -> Location helper
-   ========================= */
 const ipCache = new Map();
 const IP_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
 
@@ -132,17 +129,17 @@ async function reverseGeocodeLatLng(lat, lng) {
 /* =========================
    Save feedback (POST)
    ========================= */
+   // routes/feedback.js (only posting part shown — merge with your enrichment code above)
+// routes/feedback.js - robust POST handler (replace existing router.post("/", ...))
 router.post("/", async (req, res) => {
   try {
     const { formId, formName, responses, metadata } = req.body;
 
     if (!formId || !formName || !responses) {
-      return res
-        .status(400)
-        .json({ success: false, error: "formId, formName and responses are required" });
+      return res.status(400).json({ success: false, error: "formId, formName and responses are required" });
     }
 
-    // capture client IP properly (works with proxies if trust proxy is set)
+    // capture client IP (works with proxies if trust proxy is set)
     const ip =
       (req.headers["x-forwarded-for"] || "")
         .split(",")
@@ -152,76 +149,148 @@ router.post("/", async (req, res) => {
       req.ip ||
       "";
 
-    // minimal safe metadata extraction
     const safeMeta = {
       utm: metadata?.utm || {},
       referrer: metadata?.referrer || "",
       pageUrl: metadata?.pageUrl || "",
       userAgent: metadata?.userAgent || "",
-      location: metadata?.location || null, // expected { lat, lng, accuracy? }
+      location: metadata?.location || null,
       clientTs: metadata?.clientTs ? new Date(metadata.clientTs) : undefined,
     };
 
-    // --- ENRICH: ipGeo (server IP lookup) ---
+    // ipGeo / reverse geocode enrichment (your existing code)
     if (ip) {
       try {
         const geo = await resolveIpToLabel(ip);
-        if (geo) {
-          safeMeta.ipGeo = {
-            city: geo.city,
-            region: geo.region,
-            country: geo.country,
-            label: geo.label,
-          };
+        if (geo) safeMeta.ipGeo = { city: geo.city, region: geo.region, country: geo.country, label: geo.label };
+      } catch (err) { console.warn("ip geo enrichment failed", err?.message || err); }
+    }
+
+    if (safeMeta.location && typeof safeMeta.location.lat === "number" && typeof safeMeta.location.lng === "number") {
+      try {
+        const lat = Number(safeMeta.location.lat);
+        const lng = Number(safeMeta.location.lng);
+        const locGeo = await reverseGeocodeLatLng(lat, lng);
+        if (locGeo) {
+          safeMeta.locationLabel = locGeo.label;
+          safeMeta.locationGeo = { city: locGeo.city || null, region: locGeo.region || null, country: locGeo.country || null, label: locGeo.label, lat, lon: lng };
+        } else {
+          const label = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          safeMeta.locationLabel = label;
+          safeMeta.locationGeo = { city: null, region: null, country: null, label, lat, lon: lng };
         }
-      } catch (err) {
-        console.warn("ip geo enrichment failed", err?.message || err);
+      } catch (err) { console.warn("reverse geocode enrichment failed", err?.message || err); }
+    }
+
+    // --- find form robustly (customId first, then _id) ---
+    let form = await Form.findOne({ customId: formId }).lean();
+    if (!form) {
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(String(formId));
+      if (isObjectId) {
+        try {
+          form = await Form.findById(formId).lean();
+        } catch (e) {
+          /* ignore cast errors */
+        }
       }
     }
 
-    // --- ENRICH: if client provided coords, reverse-geocode to a label and store as locationLabel / locationGeo ---
-  // inside router.post("/", ...)
-
-// --- ENRICH: if client provided coords, reverse-geocode to a label and store as locationLabel / locationGeo ---
-if (
-  safeMeta.location &&
-  typeof safeMeta.location.lat === "number" &&
-  typeof safeMeta.location.lng === "number"
-) {
-  try {
-    const lat = Number(safeMeta.location.lat);
-    const lng = Number(safeMeta.location.lng);
-
-    const locGeo = await reverseGeocodeLatLng(lat, lng);
-    if (locGeo) {
-      safeMeta.locationLabel = locGeo.label;
-      safeMeta.locationGeo = {
-        city: locGeo.city || null,
-        region: locGeo.region || null,
-        country: locGeo.country || null,
-        label: locGeo.label,
-        lat,    // <<--- include original coords
-        lon: lng // <<--- include original coords
-      };
-    } else {
-      // fallback: keep coords as a readable label
-      const label = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      safeMeta.locationLabel = label;
-      safeMeta.locationGeo = {
-        city: null,
-        region: null,
-        country: null,
-        label,
-        lat,
-        lon: lng
-      };
+    if (!form) {
+      console.warn("Feedback POST: form not found for formId:", formId);
+      return res.status(404).json({ success: false, error: "Form not found" });
     }
-  } catch (err) {
-    console.warn("reverse geocode enrichment failed", err?.message || err);
-  }
-}
 
+    console.info("Feedback POST -> form:", {
+      customId: form.customId,
+      _id: form._id?.toString?.(),
+      paused: form.paused,
+      feedbackLimit: form.feedbackLimit,
+      feedbackCount: form.feedbackCount,
+    });
 
+    if (form.paused) {
+      return res.status(403).json({ success: false, error: "Form is paused and not accepting feedback." });
+    }
+
+    // Try to obtain a session. If obtaining/using a transaction fails with "not a replica set", fall back.
+    let session = null;
+    try {
+      if (Form.db && Form.db.client && typeof Form.db.client.startSession === "function") {
+        session = await Form.db.client.startSession();
+      }
+    } catch (e) {
+      session = null;
+    }
+
+    // If no limit set -> simplest path: create feedback and best-effort increment
+    if (form.feedbackLimit == null) {
+      const newFeedback = await Feedback.create({
+        formId,
+        formName,
+        responses,
+        metadata: safeMeta,
+        clientIp: ip,
+      });
+
+      // best-effort increment (may be slightly off under race)
+      try {
+        await Form.updateOne({ _id: form._id }, { $inc: { feedbackCount: 1 } });
+      } catch (e) {
+        console.warn("Failed to increment feedbackCount:", e?.message || e);
+      }
+      return res.status(201).json({ success: true, data: newFeedback });
+    }
+
+    // If we have a limit and a session was acquired, attempt a transaction.
+    if (session) {
+      try {
+        let createdFeedback = null;
+
+        await session.withTransaction(async () => {
+          // re-load form inside txn
+          const f = await Form.findOne({ _id: form._id }).session(session);
+          if (!f) throw new Error("Form not found (txn)");
+          if (f.paused) throw new Error("Form paused (txn)");
+          if (typeof f.feedbackLimit === "number" && f.feedbackCount >= f.feedbackLimit) {
+            throw new Error("limit-reached");
+          }
+
+          const arr = await Feedback.create([{
+            formId,
+            formName,
+            responses,
+            metadata: safeMeta,
+            clientIp: ip,
+          }], { session });
+
+          createdFeedback = arr && arr[0];
+
+          await Form.updateOne({ _id: form._id }, { $inc: { feedbackCount: 1 } }).session(session);
+        });
+
+        // transaction committed
+        return res.status(201).json({ success: true, data: createdFeedback || null });
+      } catch (err) {
+        // If this error indicates transactions are unsupported on the server, fall back to optimistic method.
+        const msg = (err && err.message) || "";
+        const isTxNotSupported = /Transaction numbers are only allowed|not a replica set|Transaction is aborted/i.test(msg) || (err && err.code === 20);
+
+        if (isTxNotSupported) {
+          console.warn("Transactions unsupported on this Mongo server — falling back to non-transactional path. Error:", err.message || err);
+          // fall through to optimistic path below
+        } else if (err && err.message === "limit-reached") {
+          return res.status(403).json({ success: false, error: "Feedback limit reached for this form." });
+        } else {
+          console.error("Feedback save txn error:", err);
+          return res.status(500).json({ success: false, error: "Internal server error" });
+        }
+      } finally {
+        try { session.endSession(); } catch (_) {}
+      }
+    }
+
+    // --- Fallback optimistic approach (no transactions / tx unsupported) ---
+    // 1) create feedback
     const newFeedback = await Feedback.create({
       formId,
       formName,
@@ -230,12 +299,30 @@ if (
       clientIp: ip,
     });
 
+    // 2) attempt to increment only if under limit
+    const incResult = await Form.findOneAndUpdate(
+      { _id: form._id, $or: [{ feedbackLimit: null }, { feedbackCount: { $lt: form.feedbackLimit } }] },
+      { $inc: { feedbackCount: 1 } },
+      { new: true }
+    );
+
+    if (!incResult) {
+      // couldn't increment because limit reached; delete the feedback we just created (rollback)
+      try {
+        await Feedback.deleteOne({ _id: newFeedback._id });
+      } catch (e) {
+        console.error("Rollback delete failed", e);
+      }
+      return res.status(403).json({ success: false, error: "Feedback limit reached for this form." });
+    }
+
     return res.status(201).json({ success: true, data: newFeedback });
   } catch (err) {
     console.error("Feedback save error:", err);
     return res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
+
 
 /* =========================
    Get feedbacks (unchanged)

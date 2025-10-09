@@ -19,11 +19,11 @@ const formSchema = new mongoose.Schema({
   fieldType: [
     {
       type: {
-        type: String, // "input", "textarea", "rating", etc.
+        type: String,
         required: true
       },
      label: { type: String, default: '' },
-      options: [String], // for radio buttons, dropdowns, etc.
+      options: [String],
       required: {
         type: Boolean,
         default: false
@@ -33,7 +33,10 @@ const formSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+    paused: { type: Boolean, default: false },       
+    feedbackLimit: { type: Number, default: null }, 
+    feedbackCount: { type: Number, default: 0 },
 });
 
 export default mongoose.models.Form || mongoose.model('Form', formSchema);
