@@ -26,10 +26,8 @@ const feedbackSchema = new mongoose.Schema({
       accuracy: { type: Number },
     },
 
-    // human-readable label for the coords (reverse-geocoded)
     locationLabel: { type: String, default: "" },
 
-    // structured reverse-geocode result (your "locaitron" object)
     locationGeo: {
       city: { type: String, default: null },
       region: { type: String, default: null },
@@ -39,7 +37,6 @@ const feedbackSchema = new mongoose.Schema({
       lon: { type: Number, default: null },
     },
 
-    // server-side ip lookup
     ipGeo: {
       city: { type: String, default: null },
       region: { type: String, default: null },
