@@ -45,7 +45,7 @@ const feedbackSchema = new mongoose.Schema({
     },
   },
 
-  clientIp: { type: String, default: "" }, // filled server-side
+  clientIp: { type: String, default: "" }, 
   createdAt: { type: Date, default: Date.now },
 });
 
