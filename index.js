@@ -13,7 +13,17 @@ import cookieParser from 'cookie-parser';
 import connectDB from "./utils/dbconnect.js"
 
 import dotenv from "dotenv";
+
 dotenv.config();
+
+console.log("DEBUG ENV:", {
+  BASE_URL: process.env.PAYPAL_BASE_URL,
+  CLIENT_ID: process.env.PAYPAL_CLIENT_ID ? "✅" : "❌",
+  SECRET: process.env.PAYPAL_SECRET ? "✅" : "❌"
+});
+
+import * as Paypal from "./services/paypal.js"
+
 const app = express();
 
 app.use(express.json());
@@ -67,13 +77,20 @@ app.get('/_debug', (req, res) => {
   });
 });
 
-// catch-all
+
+
 app.use((req, res) => {
   res.status(404).json({
     message: 'Express 404',
     debug: { path: req.path, originalUrl: req.originalUrl, url: req.url, method: req.method }
   });
 });
+// try {
+//   const tokenResponse = await Paypal.generateAccessToken();
+//   console.log("🟢 PayPal token generated successfully!");
+// } catch (err) {
+//   console.error("🔴 Failed to generate PayPal token:", err.message);
+// }
 
 export const handler = serverless(app);
 
