@@ -1,6 +1,4 @@
-// index.js
-// const express = require('express');
-// const serverless = require('serverless-http');
+
 import express from 'express'
 import serverless from 'serverless-http'
 import cors from 'cors'
@@ -14,15 +12,17 @@ import connectDB from "./utils/dbconnect.js"
 
 import dotenv from "dotenv";
 
+import chatRoute from "./routes/chat.js"
+
 dotenv.config();
 
-console.log("DEBUG ENV:", {
-  BASE_URL: process.env.PAYPAL_BASE_URL,
-  CLIENT_ID: process.env.PAYPAL_CLIENT_ID ? "✅" : "❌",
-  SECRET: process.env.PAYPAL_SECRET ? "✅" : "❌"
-});
+// console.log("DEBUG ENV:", {
+//   BASE_URL: process.env.PAYPAL_BASE_URL,
+//   CLIENT_ID: process.env.PAYPAL_CLIENT_ID ? "✅" : "❌",
+//   SECRET: process.env.PAYPAL_SECRET ? "✅" : "❌"
+// });
 
-import * as Paypal from "./services/paypal.js"
+// import * as Paypal from "./services/paypal.js"
 
 const app = express();
 
@@ -35,7 +35,6 @@ await connectDB()
 
 const STAGE = process.env.STAGE || 'prod';
 app.use((req, res, next) => {
-  // if url is like '/prod' or '/prod/hello', remove the leading '/prod'
   if (req.url === `/${STAGE}`) {
     req.url = '/';
   } else if (req.url.startsWith(`/${STAGE}/`)) {
@@ -64,7 +63,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/feedback", feedbackRouter);
 app.use("/api/forms", formsRouter);
 app.use("/api/users", usersRouter);
-
+app.use("/api",chatRoute)
 
 // test it without
 app.get('/_debug', (req, res) => {
@@ -85,12 +84,6 @@ app.use((req, res) => {
     debug: { path: req.path, originalUrl: req.originalUrl, url: req.url, method: req.method }
   });
 });
-// try {
-//   const tokenResponse = await Paypal.generateAccessToken();
-//   console.log("🟢 PayPal token generated successfully!");
-// } catch (err) {
-//   console.error("🔴 Failed to generate PayPal token:", err.message);
-// }
 
 export const handler = serverless(app);
 
