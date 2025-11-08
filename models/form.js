@@ -1,5 +1,4 @@
 
-// export default mongoose.models.Form || mongoose.model('Form', formSchema);
 import mongoose from 'mongoose';
 
 const formSchema = new mongoose.Schema({
@@ -8,7 +7,7 @@ const formSchema = new mongoose.Schema({
     required: true
   },
   customId: {
-    type: String, // e.g. Date.now().toString()
+    type: String,
     unique: true,
     required: true
   },
@@ -37,6 +36,8 @@ const formSchema = new mongoose.Schema({
     paused: { type: Boolean, default: false },       
     feedbackLimit: { type: Number, default: null }, 
     feedbackCount: { type: Number, default: 0 },
+      viewCount: { type: Number, default: 0 },      
+  totalTimeSpent: { type: Number, default: 0 },
 });
 
 export default mongoose.models.Form || mongoose.model('Form', formSchema);

@@ -39,8 +39,6 @@ export const createForm = async (req, res) => {
   }
 };
 
-
-
 export const getFormsByUser = async (req, res) => {
   try {
     const { uid } = req.query;
@@ -53,21 +51,19 @@ export const getFormsByUser = async (req, res) => {
   }
 };
 
-
-
 export const getFormById = async (req, res) => {
   try {
     const { id } = req.params;
     const form = await findFormByIdentifier(id);
     if (!form) return res.status(404).json({ error: "Form not found" });
+
+    await Form.updateOne({ _id: form._id }, { $inc: { viewCount: 1 } });
     return res.json(form);
   } catch (err) {
     console.error("Get single form error:", err);
     return res.status(500).json({ error: err.message });
   }
 };
-
-
 
 export const updateForm = async (req, res) => {
   try {
@@ -108,11 +104,6 @@ export const updateForm = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
-
-
-
-
 
 export const deleteForm = async (req, res) => {
   try {

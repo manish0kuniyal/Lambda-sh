@@ -1,50 +1,48 @@
-// models/Feedback.js
+
 import mongoose from "mongoose";
 
 const feedbackSchema = new mongoose.Schema({
   formId: { type: String, required: true },
   formName: { type: String, required: true },
 
-  // answers
   responses: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,
     required: true,
   },
 
-  // extra info we collect from frontend
   metadata: {
-    utm: { type: Map, of: String, default: {} }, // all utm_* params
-    referrer: { type: String, default: "" },     // document.referrer
-    pageUrl: { type: String, default: "" },      // window.location.href
-    userAgent: { type: String, default: "" },    // navigator.userAgent
+    utm: { type: Map, of: String, default: {} },
+    referrer: { type: String, default: "" },     
+    pageUrl: { type: String, default: "" },     
+    userAgent: { type: String, default: "" },    
 
-    // raw coords client sent (if any)
-    location: {
-      lat: { type: Number },
-      lng: { type: Number },
-      accuracy: { type: Number },
-    },
+    // location: {
+    //   lat: { type: Number },
+    //   lng: { type: Number },
+    //   accuracy: { type: Number },
+    // },
 
     locationLabel: { type: String, default: "" },
 
-    locationGeo: {
-      city: { type: String, default: null },
-      region: { type: String, default: null },
-      country: { type: String, default: null },
-      label: { type: String, default: "" },
-      lat: { type: Number, default: null }, // repeated for convenience / query
-      lon: { type: Number, default: null },
-    },
+    // locationGeo: {
+    //   city: { type: String, default: null },
+    //   region: { type: String, default: null },
+    //   country: { type: String, default: null },
+    //   label: { type: String, default: "" },
+    //   lat: { type: Number, default: null }, 
+    //         lon: { type: Number, default: null },
+    // },
 
-    ipGeo: {
-      city: { type: String, default: null },
-      region: { type: String, default: null },
-      country: { type: String, default: null },
-      label: { type: String, default: "" }
-    },
+    // ipGeo: {
+    //   city: { type: String, default: null },
+    //   region: { type: String, default: null },
+    //   country: { type: String, default: null },
+    //   label: { type: String, default: "" }
+    // },
   },
 
+    timeOnPage: { type: Number, default: 0 },
   clientIp: { type: String, default: "" }, 
   createdAt: { type: Date, default: Date.now },
 });

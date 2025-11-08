@@ -65,7 +65,6 @@ app.use("/api/forms", formsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api",chatRoute)
 
-// test it without
 app.get('/_debug', (req, res) => {
   res.json({
     path: req.path,
