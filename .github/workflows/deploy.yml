@@ -112,7 +112,21 @@ jobs:
           current_vars=$(echo "$cfg" | jq -r '.Environment.Variables // {}')
       
           # build new vars object by merging existing with the new ones; GH secrets are expanded by Actions
-          new_vars=$(echo "$current_vars" | jq --arg mongo "${{ secrets.MONGODB_URI }}" --arg db "prod" '. + {MONGODB_URI: $mongo, MONGODB_DB: $db }')
+          new_vars=$(echo "$current_vars" | jq \
+          --arg mongo "${{ secrets.MONGODB_URI }}" \
+          --arg db "prod" \
+          --arg rzp_id "${{ secrets.RAZORPAY_KEY_ID }}" \
+          --arg rzp_secret "${{ secrets.RAZORPAY_KEY_SECRET }}" \
+          --arg rzp_webhook "${{ secrets.RAZORPAY_WEBHOOK_SECRET }}" \
+          '. + {
+            MONGODB_URI: $mongo,
+            MONGODB_DB: $db,
+            RAZORPAY_KEY_ID: $rzp_id,
+            RAZORPAY_KEY_SECRET: $rzp_secret,
+            RAZORPAY_WEBHOOK_SECRET: $rzp_webhook
+          }'
+          )
+
       
           # update config using the merged variables (converted to KEY=VALUE,KEY2=VALUE2 form)
           # convert JSON object to the AWS CLI inline format
