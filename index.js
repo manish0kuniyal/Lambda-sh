@@ -30,8 +30,21 @@ app.use(express.json());
 app.use(cookieParser());
 
 const port=5000
+let dbReady = false;
 
-await connectDB()
+app.use(async (req, res, next) => {
+  try {
+    if (!dbReady) {
+      await connectDB();
+      dbReady = true;
+    }
+    next();
+  } catch (err) {
+    console.error("DB connection failed during request", err);
+    res.status(503).json({ message: "Database unavailable" });
+  }
+});
+
 
 const STAGE = process.env.STAGE || 'prod';
 app.use((req, res, next) => {
