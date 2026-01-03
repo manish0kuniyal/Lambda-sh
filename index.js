@@ -28,7 +28,17 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+const ALLOWED_ORIGIN = "https://dev.feedbyx.com";
 
+app.use(cors({
+  origin: ALLOWED_ORIGIN,
+  credentials: true,
+}));
+
+app.options("*", cors({
+  origin: ALLOWED_ORIGIN,
+  credentials: true,
+}));
 const port=5000
 
 app.use(async (req, res, next) => {
@@ -51,14 +61,14 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "http://localhost:5173","https://dev.feedbyx.com","https://main.d3jt2wtqx08knj.amplifyapp.com"],
-    credentials: true,
-  methods: ["GET","HEAD","PUT","PATCH","POST","DELETE","OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// app.use(
+//   cors({
+//     origin: ["http://localhost:3000", "http://localhost:5173","https://dev.feedbyx.com","https://main.d3jt2wtqx08knj.amplifyapp.com"],
+//     credentials: true,
+//   methods: ["GET","HEAD","PUT","PATCH","POST","DELETE","OPTIONS"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   })
+// );
 
 
 
