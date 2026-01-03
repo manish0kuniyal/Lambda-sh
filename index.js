@@ -30,14 +30,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 const port=5000
-let dbReady = false;
 
 app.use(async (req, res, next) => {
   try {
-    if (!dbReady) {
       await connectDB();
-      dbReady = true;
-    }
     next();
   } catch (err) {
     console.error("DB connection failed during request", err);
@@ -102,4 +98,4 @@ app.use((req, res) => {
 
 export const handler = serverless(app);
 
-  // app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
+  app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
