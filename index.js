@@ -98,4 +98,8 @@ app.use((req, res) => {
 
 export const handler = serverless(app);
 
-  app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
+if (process.env.NODE_ENV !== "production") {
+  app.listen(port, () =>
+    console.log(`Local server on http://localhost:${port}`)
+  );
+}
