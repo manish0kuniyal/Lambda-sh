@@ -102,4 +102,4 @@ app.use((req, res) => {
 
 export const handler = serverless(app);
 
-  app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
+  // app.listen(port, () => console.log(`Local server on http://localhost:${port}`));
